@@ -1,29 +1,29 @@
 import pygame as pg
 import math 
-import pandas as pd
 
-#cores do jogo
-preto = (0,0,0)
-branco = (255,255,255)
+# cores do jogo
+preto = (0, 0, 0)
+branco = (255, 255, 255)
 vermelho = (255, 0, 0)
 verde = (0, 255, 0)
 azul = (0, 0, 250)
 cinza = (150, 150, 150)
 
-#setup da tela de jogo
+# setup da tela de jogo
+pg.init()
 window = pg.display.set_mode((1000, 600))
 window.fill(branco)
 
-#inicializando a fonte 
+# inicializando a fonte 
 pg.font.init()
 
 # Escolhendo uma fonte e tamanho
 fonte = pg.font.SysFont("Comic Sans MS", 30)
-board_array = [['n','n','n'],
-               ['n','n','n'],
-               ['n','n','n']]
+board_array = [['n', 'n', 'n'],
+               ['n', 'n', 'n'],
+               ['n', 'n', 'n']]
 
-#Click variable
+# Variáveis de clique
 click_last_status = 0
 click_on_off = 0
 click_position_x = -1
@@ -33,16 +33,15 @@ X_or_O_turn = 'x'
 end_game = 0
 
 def boardGrid(window):
-    pg.draw.line(window, branco,(0, 0),  (600, 600), 10)
-    pg.draw.line(window, preto,(200, 10), (200, 570), 10)
-    pg.draw.line(window, preto,(400, 10), (400, 570), 10)
-    pg.draw.line(window, preto,(10, 200), (570, 200), 10)
-    pg.draw.line(window, preto,(10, 400), (570, 400), 10)
+    pg.draw.line(window, preto, (200, 10), (200, 570), 10)
+    pg.draw.line(window, preto, (400, 10), (400, 570), 10)
+    pg.draw.line(window, preto, (10, 200), (570, 200), 10)
+    pg.draw.line(window, preto, (10, 400), (570, 400), 10)
 
 def clickLogic(click_on_off, click_last_status, x, y):
     if click[0] == 0 and click_last_status == 1:
-        x = (math.cell(mouse[0] / 200 )-1)
-        y = (math.cell(mouse[1] / 200 )-1)
+        x = (math.ceil(mouse[0] / 200) - 1)
+        y = (math.ceil(mouse[1] / 200) - 1)
     elif click[0] == 0 and click_last_status == 0:
         click_on_off = 0 
         x = -1
@@ -50,58 +49,62 @@ def clickLogic(click_on_off, click_last_status, x, y):
     return click_on_off, click_last_status, x, y
 
 def drawSelectedCell(window, board_array):
-    for n in range(3):
-        for nn in range(4):
-            if board_array[nn][n] == 'x':
-                jogador_X(window, n, nn)
-            elif board_array[nn][n] == 'o':
-                jogador_O(window, n, nn)
-            else:
-                pass
+    for y in range(3):
+        for x in range(3):
+            if board_array[y][x] == 'x':
+                jogador_X(window, x, y)
+            elif board_array[y][x] == 'o':
+                jogador_O(window, x, y)
 
 def boardArrayData(board_array, X_or_O_turn, end_game, x, y):
-    if x < 3 and y <= 3:
+    if x < 3 and y < 3:
         if X_or_O_turn == 'x' and board_array[y][x] == 'n' and x != -1 and y != -1 and end_game == 0:
             board_array[y][x] = 'x'
             X_or_O_turn = 'o'
-        if X_or_O_turn == 'o' and board_array[y][x] == 'n' and x != -1 and y != -1 and end_game == 0:
+        elif X_or_O_turn == 'o' and board_array[y][x] == 'n' and x != -1 and y != -1 and end_game == 0:
             board_array[y][x] = 'o'
             X_or_O_turn = 'x'
     return board_array, X_or_O_turn
 
 def winLine(window, board_array, end_game, X_or_O_turn):
-    if board_array[0][0] == 'x' and board_array[0][1] == 'x' and board_array[1][2] == 'x' or  board_array[0][0] == 'o' and board_array[0][1] == 'o' and board_array[1][2] == 'o':
-        pg.draw.line(window, verde, (30, 100), (570, 100), 10)
+    win_pos = []
+
+    if board_array[0][0] == board_array[0][1] == board_array[0][2] != 'n':
+        win_pos = [(0, 0), (0, 2)]
+    elif board_array[1][0] == board_array[1][1] == board_array[1][2] != 'n':
+        win_pos = [(1, 0), (1, 2)]
+    elif board_array[2][0] == board_array[2][1] == board_array[2][2] != 'n':
+        win_pos = [(2, 0), (2, 2)]
+    elif board_array[0][0] == board_array[1][0] == board_array[2][0] != 'n':
+        win_pos = [(0, 0), (2, 0)]
+    elif board_array[0][1] == board_array[1][1] == board_array[2][1] != 'n':
+        win_pos = [(0, 1), (2, 1)]
+    elif board_array[0][2] == board_array[1][2] == board_array[2][2] != 'n':
+        win_pos = [(0, 2), (2, 2)]
+    elif board_array[0][0] == board_array[1][1] == board_array[2][2] != 'n':
+        win_pos = [(0, 0), (2, 2)]
+    elif board_array[2][0] == board_array[1][1] == board_array[0][2] != 'n':
+        win_pos = [(2, 0), (0, 2)]
+
+    if win_pos:
+        start = (win_pos[0][1] * 200 + 20, win_pos[0][0] * 200 + 100)
+        end = (win_pos[1][1] * 200 + 180, win_pos[1][0] * 200 + 100)
+        if win_pos[0][0] == win_pos[1][0]:  # horizontal line
+            start = (win_pos[0][1] * 200 + 20, win_pos[0][0] * 200 + 100)
+            end = (win_pos[1][1] * 200 + 180, win_pos[1][0] * 200 + 100)
+        elif win_pos[0][1] == win_pos[1][1]:  # vertical line
+            start = (win_pos[0][1] * 200 + 100, win_pos[0][0] * 200 + 20)
+            end = (win_pos[1][1] * 200 + 100, win_pos[1][0] * 200 + 180)
+        elif win_pos == [(0, 0), (2, 2)]:  # diagonal from top-left to bottom-right
+            start = (win_pos[0][1] * 200 + 20, win_pos[0][0] * 200 + 20)
+            end = (win_pos[1][1] * 200 + 180, win_pos[1][0] * 200 + 180)
+        elif win_pos == [(2, 0), (0, 2)]:  # diagonal from bottom-left to top-right
+            start = (win_pos[0][1] * 200 + 20, win_pos[0][0] * 200 + 180)
+            end = (win_pos[1][1] * 200 + 180, win_pos[1][0] * 200 + 20)
+        
+        pg.draw.line(window, verde, start, end, 10)
         end_game = 1
-        X_or_O_turn = 'x'
-    elif board_array[1][0] == 'x' and board_array[1][1] == 'x' and board_array[1][2] == 'x' or  board_array[1][0] == 'o' and board_array[1][1] == 'o' and board_array[1][2] == 'o':
-        pg.draw.line(window, verde, (30, 300), (570, 300), 10)
-        end_game = 1
-        X_or_O_turn = 'x'
-    elif board_array[2][0] == 'x' and board_array[2][1] == 'x' and board_array[2][2] == 'x' or  board_array[2][0] == 'o' and board_array[2][1] == 'o' and board_array[2][2] == 'o':
-        pg.draw.line(window, verde, (30, 500), (570, 500), 10)
-        end_game = 1
-        X_or_O_turn = 'x'
-    elif board_array[0][0] == 'x' and board_array[1][0] == 'x' and board_array[2][0] == 'x' or  board_array[0][0] == 'o' and board_array[1][0] == 'o' and board_array[2][0] == 'o':
-        pg.draw.line(window, verde, (100, 30), (100, 580), 10)
-        end_game = 1
-        X_or_O_turn = 'x'
-    elif board_array[0][1] == 'x' and board_array[1][1] == 'x' and board_array[2][1] == 'x' or  board_array[0][1] == 'o' and board_array[1][1] == 'o' and board_array[2][1] == 'o':
-        pg.draw.line(window, verde, (300, 30), (300, 580), 10)
-        end_game = 1
-        X_or_O_turn = 'x'
-    elif board_array[0][2] == 'x' and board_array[1][2] == 'x' and board_array[2][2] == 'x' or  board_array[0][2] == 'o' and board_array[1][2] == 'o' and board_array[2][2] == 'o':
-        pg.draw.line(window, verde, (500, 30), (500, 580), 10)
-        end_game = 1
-        X_or_O_turn = 'x'
-    elif board_array[0][0] == 'x' and board_array[1][1] == 'x' and board_array[2][2] == 'x' or  board_array[0][0] == 'o' and board_array[1][1] == 'o' and board_array[2][2] == 'o':
-        pg.draw.line(window, verde, (30, 30), (580, 580), 10)
-        end_game = 1
-        X_or_O_turn = 'x'
-    elif board_array[2][0] == 'x' and board_array[1][1] == 'x' and board_array[0][2] == 'x' or  board_array[2][0] == 'o' and board_array[1][1] == 'o' and board_array[0][2] == 'o':
-        pg.draw.line(window, verde, (580, 30), (30, 580), 10)
-        end_game = 1
-        X_or_O_turn = 'x'
+
     return end_game, X_or_O_turn
 
 def restartButton(window):
@@ -109,36 +112,26 @@ def restartButton(window):
     texto = fonte.render('Restart', 1, preto)
     window.blit(texto, (750, 480))
 
-def restartGame(board_array, x, y, end_game, click_on_off):
-    if click_on_off == 1 and end_game == 1:
-        if x >= 700 and x <= 900 and y >= 100 and y <= 165:
-            board_array = [['n','n','n'],
-                           ['n','n','n'],
-                           ['n','n', 'n']]
-            end_game = 0
+def restartGame(board_array, x, y, end_game):
+    if x >= 700 and x <= 900 and y >= 470 and y <= 535:  # Corrigindo a posição do botão
+        board_array = [['n', 'n', 'n'],
+                       ['n', 'n', 'n'],
+                       ['n', 'n', 'n']]
+        end_game = 0
     return board_array, end_game
 
-def gameStatus(board_array, X_or_O_turn , end_game):
-    count = 0
-    for n in range(3):
-        for nn in range(3):
-            if board_array[nn][n] != 'n':
-                count += 1
-    if count == 9 and X_or_O_turn == 'x':
-        X_or_O_turn = 'o'
-        end_game = 1
-    elif count == 9 and X_or_O_turn == 'o':
-        X_or_O_turn = 'x'
+def gameStatus(board_array, X_or_O_turn, end_game):
+    count = sum(row.count('n') for row in board_array)
+    if count == 0:
         end_game = 1
     return board_array, end_game
 
 def jogador_X(window, x, y):
-    pg.draw.line(window, vermelho, ((x * 200) + 30, (y * 200) + 30, (x * 200) + 180, (y * 200) + 180), 10)
-    pg.draw.line(window, vermelho, ((x * 200) + 100, (y * 200) + 30, (x * 200) + 30, (y * 200) + 180), 10)
-def jogador_O(window, x, y):
-    pg.draw.line(window, azul, ((x * 200) + 105, (y * 200) + 105), 75)
-    pg.draw.line(window, branco, ((x * 200) + 105, (y * 200) + 105), 65)
+    pg.draw.line(window, vermelho, ((x * 200) + 30, (y * 200) + 30), ((x * 200) + 170, (y * 200) + 170), 10)
+    pg.draw.line(window, vermelho, ((x * 200) + 30, (y * 200) + 170), ((x * 200) + 170, (y * 200) + 30), 10)
 
+def jogador_O(window, x, y):
+    pg.draw.circle(window, azul, ((x * 200) + 100, (y * 200) + 100), 75, 10)
 
 while True:
     for event in pg.event.get():
@@ -152,17 +145,19 @@ while True:
 
     click = pg.mouse.get_pressed()
 
+    window.fill(branco)  # Redesenhar o fundo para apagar os desenhos anteriores
     boardGrid(window)
     click_on_off, click_last_status, click_position_x, click_position_y = clickLogic(click_on_off, click_last_status, click_position_x, click_position_y)
     board_array, X_or_O_turn = boardArrayData(board_array, X_or_O_turn, end_game, click_position_x, click_position_y) 
     end_game, X_or_O_turn = winLine(window, board_array, end_game, X_or_O_turn)
+    drawSelectedCell(window, board_array)
     restartButton(window)
-    board_array, end_game = restartGame(board_array, mouse_position_x, mouse_position_y, end_game, click_on_off)
-    board_array, end_game = gameStatus(board_array, X_or_O_turn , end_game)
+    if click[0] == 1 and end_game == 1:
+        board_array, end_game = restartGame(board_array, mouse_position_x, mouse_position_y, end_game)
+    board_array, end_game = gameStatus(board_array, X_or_O_turn, end_game)
 
     if click[0] == 1:
         click_last_status = 1
     else: 
         click_last_status = 0
     pg.display.update()
-
