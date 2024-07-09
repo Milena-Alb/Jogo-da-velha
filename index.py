@@ -8,19 +8,54 @@ vermelho = (255, 0, 0)
 verde = (0, 255, 0)
 azul = (0, 0, 250)
 cinza = (150, 150, 150)
+ciano = (0, 255, 255)
+dourado = (255, 215, 0)
+
+class TelaInicial:
+    def __init__(self, window, fonte):
+        self.window = window
+        self.fonte = fonte
+        self.running = True
+        self.state = 'inicio'
+        self.fonte_titulo = pg.font.Font(".\Assets\AlfaSlabOne-Regular.ttf", 70)
+        self.imagem_robot = pg.image.load(".\\Assets\\robot.png")
+        self.imagem_idosa = pg.image.load(".\\Assets\\idosas.png")
+
+    def exibir(self):
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                self.running = False
+            if event.type == pg.MOUSEBUTTONDOWN:
+                self.state = 'jogo'
+
+        self.window.fill(ciano)
+        texto = self.fonte_titulo.render('Jogo da', 1, dourado)
+        texto2 = self.fonte_titulo.render('Velha#', 1, vermelho)
+        self.window.blit(texto, (330, 50))
+        self.window.blit(texto2, (350, 105))
+        pg.draw.rect(self.window, verde, (220, 300, 190, 190))
+        pg.draw.rect(self.window, verde, (580, 300, 180, 190))
+        texto = self.fonte.render('VS Robo', 1, preto)
+        texto2 = self.fonte.render('1 VS 1', 1, preto)
+        self.window.blit(texto, (255, 495))
+        self.window.blit(texto2, (630, 495))
+        self.window.blit(self.imagem_robot, (220, 300))
+        self.window.blit(self.imagem_idosa, (520, 290))
+        pg.display.update()
 
 class JogoDaVelha:
     def __init__(self):
         pg.init()
         pg.font.init()
         self.window = pg.display.set_mode((1000, 600))
-        self.fonte = pg.font.SysFont("Comic Sans MS", 30)
+        self.fonte = pg.font.Font(".\\Assets\\Ubuntu-Regular.ttf", 30)
         self.clock = pg.time.Clock()
         self.running = True
         self.state = 'inicio'
+        self.tela_inicial = TelaInicial(self.window, self.fonte)
         self.reset_game()
 
-#Reinicia o jogo
+    # Reinicia o jogo
     def reset_game(self):
         self.board_array = [['n', 'n', 'n'],
                             ['n', 'n', 'n'],
@@ -35,7 +70,9 @@ class JogoDaVelha:
     def run(self):
         while self.running:
             if self.state == 'inicio':
-                self.tela_inicio()
+                self.tela_inicial.exibir()
+                self.state = self.tela_inicial.state
+                self.running = self.tela_inicial.running
             elif self.state == 'jogo':
                 self.tela_jogo()
             elif self.state == 'reiniciar':
@@ -44,21 +81,6 @@ class JogoDaVelha:
             self.clock.tick(60)
         pg.quit()
     
-    def tela_inicio(self):
-        for event in pg.event.get():
-            if event.type == pg.QUIT:
-                self.running = False
-            if event.type == pg.MOUSEBUTTONDOWN:
-                self.state = 'jogo'
-
-        self.window.fill(branco)
-        texto = self.fonte.render('Jogo da velha', 1, preto)
-        self.window.blit(texto, (390, 50))
-        pg.draw.rect(self.window, verde, (390, 470, 200, 65))
-        texto = self.fonte.render('Jogar', 1, preto)
-        self.window.blit(texto, (390, 480))
-        pg.display.update()
-
     def tela_jogo(self):
         for event in pg.event.get():
             if event.type == pg.QUIT:
