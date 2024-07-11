@@ -1,5 +1,5 @@
 import pygame as pg
-import math
+import random
 
 # Cores do jogo
 preto = (0, 0, 0)
@@ -10,6 +10,7 @@ azul = (0, 0, 250)
 cinza = (150, 150, 150)
 ciano = (0, 255, 255)
 dourado = (255, 215, 0)
+turquesa = (0, 206, 209)
 
 class TelaInicial:
     def __init__(self, window, fonte):
@@ -17,16 +18,20 @@ class TelaInicial:
         self.fonte = fonte
         self.running = True
         self.state = 'inicio'
-        self.fonte_titulo = pg.font.Font(".\Assets\AlfaSlabOne-Regular.ttf", 70)
-        self.imagem_robot = pg.image.load(".\\Assets\\robot.png")
-        self.imagem_idosa = pg.image.load(".\\Assets\\idosas.png")
+        self.fonte_titulo = pg.font.Font("./Assets/AlfaSlabOne-Regular.ttf", 70)
+        self.imagem_robot = pg.image.load("./Assets/robot.png")
+        self.imagem_idosa = pg.image.load("./Assets/idosas.png")
 
     def exibir(self):
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 self.running = False
             if event.type == pg.MOUSEBUTTONDOWN:
-                self.state = 'jogo'
+                x, y = pg.mouse.get_pos()
+                if 220 <= x <= 410 and 300 <= y <= 490:
+                    self.state = 'game_vs_robot'
+                elif 580 <= x <= 770 and 300 <= y <= 490:
+                    self.state = 'game_vs_human'
 
         self.window.fill(ciano)
         texto = self.fonte_titulo.render('Jogo da', 1, dourado)
@@ -43,71 +48,23 @@ class TelaInicial:
         self.window.blit(self.imagem_idosa, (520, 290))
         pg.display.update()
 
-class JogoDaVelha:
-    def __init__(self):
-        pg.init()
-        pg.font.init()
-        self.window = pg.display.set_mode((1000, 600))
-        self.fonte = pg.font.Font(".\\Assets\\Ubuntu-Regular.ttf", 30)
-        self.clock = pg.time.Clock()
-        self.running = True
-        self.state = 'inicio'
-        self.tela_inicial = TelaInicial(self.window, self.fonte)
-        self.reset_game()
+class GameBase:
+    def __init__(self, window, fonte):
+        self.window = window
+        self.fonte = fonte
+        self.fonte_Logo = pg.font.Font("./Assets/AlfaSlabOne-Regular.ttf",25)
+        self.count_X_wins = 0
+        self.count_O_wins = 0
+        self.count_Empates = 0
+        self.resetGame()
 
-    # Reinicia o jogo
-    def reset_game(self):
+    def resetGame(self):
         self.board_array = [['n', 'n', 'n'],
                             ['n', 'n', 'n'],
                             ['n', 'n', 'n']]
-        self.click_last_status = 0
-        self.click_on_off = 0
-        self.click_position_x = -1
-        self.click_position_y = -1
         self.X_or_O_turn = 'x'
-        self.end_game = 0
-
-    def run(self):
-        while self.running:
-            if self.state == 'inicio':
-                self.tela_inicial.exibir()
-                self.state = self.tela_inicial.state
-                self.running = self.tela_inicial.running
-            elif self.state == 'jogo':
-                self.tela_jogo()
-            elif self.state == 'reiniciar':
-                self.reset_game()
-                self.state = 'jogo'
-            self.clock.tick(60)
-        pg.quit()
-    
-    def tela_jogo(self):
-        for event in pg.event.get():
-            if event.type == pg.QUIT:
-                self.running = False
-
-        mouse = pg.mouse.get_pos()
-        mouse_position_x = mouse[0]
-        mouse_position_y = mouse[1]
-
-        click = pg.mouse.get_pressed()
-
-        self.window.fill(branco)  # Redesenhar o fundo para apagar os desenhos anteriores
-        self.boardGrid()
-        self.click_on_off, self.click_last_status, self.click_position_x, self.click_position_y = self.clickLogic(self.click_on_off, self.click_last_status, self.click_position_x, self.click_position_y)
-        self.board_array, self.X_or_O_turn = self.boardArrayData(self.board_array, self.X_or_O_turn, self.end_game, self.click_position_x, self.click_position_y) 
-        self.end_game, self.X_or_O_turn = self.winLine(self.board_array, self.end_game, self.X_or_O_turn)
-        self.drawSelectedCell()
-        self.restartButton()
-        if click[0] == 1 and self.end_game == 1:
-            self.board_array, self.end_game = self.restartGame(self.board_array, mouse_position_x, mouse_position_y, self.end_game)
-        self.board_array, self.end_game = self.gameStatus(self.board_array, self.X_or_O_turn, self.end_game)
-
-        if click[0] == 1:
-            self.click_last_status = 1
-        else: 
-            self.click_last_status = 0
-        pg.display.update()
+        self.end_game = False
+        self.winning_line = None
 
     def boardGrid(self):
         pg.draw.line(self.window, preto, (200, 10), (200, 570), 10)
@@ -115,15 +72,18 @@ class JogoDaVelha:
         pg.draw.line(self.window, preto, (10, 200), (570, 200), 10)
         pg.draw.line(self.window, preto, (10, 400), (570, 400), 10)
 
-    def clickLogic(self, click_on_off, click_last_status, x, y):
-        if pg.mouse.get_pressed()[0] == 0 and click_last_status == 1:
-            x = (math.ceil(pg.mouse.get_pos()[0] / 200) - 1)
-            y = (math.ceil(pg.mouse.get_pos()[1] / 200) - 1)
-        elif pg.mouse.get_pressed()[0] == 0 and click_last_status == 0:
-            click_on_off = 0 
-            x = -1
-            y = -1
-        return click_on_off, click_last_status, x, y
+    def clickLogic(self, pos):
+        if self.end_game:
+            return
+
+        x = pos[0] // 200
+        y = pos[1] // 200
+
+        if 0 <= x < 3 and 0 <= y < 3:
+            if self.board_array[y][x] == 'n':
+                self.board_array[y][x] = self.X_or_O_turn
+                self.checkWin()
+                self.X_or_O_turn = 'o' if self.X_or_O_turn == 'x' else 'x'
 
     def drawSelectedCell(self):
         for y in range(3):
@@ -133,75 +93,91 @@ class JogoDaVelha:
                 elif self.board_array[y][x] == 'o':
                     self.jogador_O(x, y)
 
-    def boardArrayData(self, board_array, X_or_O_turn, end_game, x, y):
-        if x < 3 and y < 3:
-            if X_or_O_turn == 'x' and board_array[y][x] == 'n' and x != -1 and y != -1 and end_game == 0:
-                board_array[y][x] = 'x'
-                X_or_O_turn = 'o'
-            elif X_or_O_turn == 'o' and board_array[y][x] == 'n' and x != -1 and y != -1 and end_game == 0:
-                board_array[y][x] = 'o'
-                X_or_O_turn = 'x'
-        return board_array, X_or_O_turn
+    def checkWin(self):
+        lines = [
+            [(0, 0), (0, 1), (0, 2)],
+            [(1, 0), (1, 1), (1, 2)],
+            [(2, 0), (2, 1), (2, 2)],
+            [(0, 0), (1, 0), (2, 0)],
+            [(0, 1), (1, 1), (2, 1)],
+            [(0, 2), (1, 2), (2, 2)],
+            [(0, 0), (1, 1), (2, 2)],
+            [(2, 0), (1, 1), (0, 2)]
+        ]
 
-    def winLine(self, board_array, end_game, X_or_O_turn):
-        win_pos = []
+        for line in lines:
+            if self.board_array[line[0][0]][line[0][1]] == self.board_array[line[1][0]][line[1][1]] == self.board_array[line[2][0]][line[2][1]] != 'n':
+                self.winning_line = (line[0], line[2])
+                self.end_game = True
+                if self.board_array[line[0][0]][line[0][1]] == 'x':
+                    self.count_X_wins += 1
+                else:
+                    self.count_O_wins += 1
+                return
 
-        if board_array[0][0] == board_array[0][1] == board_array[0][2] != 'n':
-            win_pos = [(0, 0), (0, 2)]
-        elif board_array[1][0] == board_array[1][1] == board_array[1][2] != 'n':
-            win_pos = [(1, 0), (1, 2)]
-        elif board_array[2][0] == board_array[2][1] == board_array[2][2] != 'n':
-            win_pos = [(2, 0), (2, 2)]
-        elif board_array[0][0] == board_array[1][0] == board_array[2][0] != 'n':
-            win_pos = [(0, 0), (2, 0)]
-        elif board_array[0][1] == board_array[1][1] == board_array[2][1] != 'n':
-            win_pos = [(0, 1), (2, 1)]
-        elif board_array[0][2] == board_array[1][2] == board_array[2][2] != 'n':
-            win_pos = [(0, 2), (2, 2)]
-        elif board_array[0][0] == board_array[1][1] == board_array[2][2] != 'n':
-            win_pos = [(0, 0), (2, 2)]
-        elif board_array[2][0] == board_array[1][1] == board_array[0][2] != 'n':
-            win_pos = [(2, 0), (0, 2)]
+        if all(cell != 'n' for row in self.board_array for cell in row):
+            self.end_game = True
+            self.count_Empates += 1
 
-        if win_pos:
-            start = (win_pos[0][1] * 200 + 20, win_pos[0][0] * 200 + 100)
-            end = (win_pos[1][1] * 200 + 180, win_pos[1][0] * 200 + 100)
-            if win_pos[0][0] == win_pos[1][0]:  # horizontal line
-                start = (win_pos[0][1] * 200 + 20, win_pos[0][0] * 200 + 100)
-                end = (win_pos[1][1] * 200 + 180, win_pos[1][0] * 200 + 100)
-            elif win_pos[0][1] == win_pos[1][1]:  # vertical line
-                start = (win_pos[0][1] * 200 + 100, win_pos[0][0] * 200 + 20)
-                end = (win_pos[1][1] * 200 + 100, win_pos[1][0] * 200 + 180)
-            elif win_pos == [(0, 0), (2, 2)]:  # diagonal from top-left to bottom-right
-                start = (win_pos[0][1] * 200 + 20, win_pos[0][0] * 200 + 20)
-                end = (win_pos[1][1] * 200 + 180, win_pos[1][0] * 200 + 180)
-            elif win_pos == [(2, 0), (0, 2)]:  # diagonal from bottom-left to top-right
-                start = (win_pos[0][1] * 200 + 20, win_pos[0][0] * 200 + 180)
-                end = (win_pos[1][1] * 200 + 180, win_pos[1][0] * 200 + 20)
-            
-            pg.draw.line(self.window, verde, start, end, 10)
-            end_game = 1
+    def drawWinningLine(self):
+        if self.winning_line:
+            start_x = self.winning_line[0][1] * 200 + 100
+            start_y = self.winning_line[0][0] * 200 + 100
+            end_x = self.winning_line[1][1] * 200 + 100
+            end_y = self.winning_line[1][0] * 200 + 100
 
-        return end_game, X_or_O_turn
+            if self.winning_line[0][0] == self.winning_line[1][0]:  # horizontal line
+                start_x = self.winning_line[0][1] * 200 + 20
+                end_x = self.winning_line[1][1] * 200 + 180
+            elif self.winning_line[0][1] == self.winning_line[1][1]:  # vertical line
+                start_y = self.winning_line[0][0] * 200 + 20
+                end_y = self.winning_line[1][0] * 200 + 180
+            elif self.winning_line == [(0, 0), (2, 2)]:  # diagonal from top-left to bottom-right
+                start_x = self.winning_line[0][1] * 200 + 20
+                start_y = self.winning_line[0][0] * 200 + 20
+                end_x = self.winning_line[1][1] * 200 + 180
+                end_y = self.winning_line[1][0] * 200 + 180
+            elif self.winning_line == [(2, 0), (0, 2)]:  # diagonal from bottom-left to top-right
+                start_x = self.winning_line[0][1] * 200 + 20
+                start_y = self.winning_line[0][0] * 200 + 180
+                end_x = self.winning_line[1][1] * 200 + 180
+                end_y = self.winning_line[1][0] * 200 + 20
+
+            pg.draw.line(self.window, verde, (start_x, start_y), (end_x, end_y), 10)
 
     def restartButton(self):
-        pg.draw.rect(self.window, cinza, (700, 470, 200, 65))
+        pg.draw.rect(self.window, cinza, (700, 470, 200, 55))
         texto = self.fonte.render('Restart', 1, preto)
         self.window.blit(texto, (750, 480))
 
-    def restartGame(self, board_array, x, y, end_game):
-        if x >= 700 and x <= 900 and y >= 470 and y <= 535:
-            board_array = [['n', 'n', 'n'],
-                           ['n', 'n', 'n'],
-                           ['n', 'n', 'n']]
-            end_game = 0
-        return board_array, end_game
+    def restartGame(self, pos):
+        if 700 <= pos[0] <= 900 and 470 <= pos[1] <= 535:
+            self.resetGame()
 
-    def gameStatus(self, board_array, X_or_O_turn, end_game):
-        count = sum(row.count('n') for row in board_array)
-        if count == 0:
-            end_game = 1
-        return board_array, end_game
+    def drawCounters(self):
+        logo = self.fonte_Logo.render("Jogo da", 1, dourado)
+        logo2 = self.fonte_Logo.render("Velha#", 1, vermelho)
+        self.window.blit(logo, (880, 25))
+        self.window.blit(logo2, (890, 45))
+        texto_X = self.fonte.render(f'Vitórias X: {self.count_X_wins}', 1, vermelho)
+        texto_O = self.fonte.render(f'Vitórias O: {self.count_O_wins}', 1, azul)
+        texto_empate = self.fonte.render(f'Empates: {self.count_Empates}', 1, preto)
+        self.window.blit(texto_X, (620, 350))
+        self.window.blit(texto_O, (820, 350))
+        self.window.blit(texto_empate, (720, 400))
+
+    def drawResult(self):
+        texto_X = self.fonte.render(f'Vitória!', 2, vermelho)
+        texto_O = self.fonte.render(f'Vitória!', 2, azul)
+        if self.end_game:
+            if self.winning_line:
+                if self.board_array[self.winning_line[0][0]][self.winning_line[0][1]] == 'x':
+                    self.window.blit(texto_X, (740, 200))
+                else:
+                    self.window.blit(texto_O, (740, 200))
+            else:
+                texto_empate = self.fonte.render('Empate!', 1, preto)
+                self.window.blit(texto_empate, (740, 200))
 
     def jogador_X(self, x, y):
         pg.draw.line(self.window, vermelho, ((x * 200) + 30, (y * 200) + 30), ((x * 200) + 170, (y * 200) + 170), 10)
@@ -209,6 +185,89 @@ class JogoDaVelha:
 
     def jogador_O(self, x, y):
         pg.draw.circle(self.window, azul, ((x * 200) + 100, (y * 200) + 100), 75, 10)
+
+class GameVsHuman(GameBase):
+    def __init__(self, window, fonte):
+        super().__init__(window, fonte)
+
+    def run(self):
+        running = True
+        while running:
+            for event in pg.event.get():
+                if event.type == pg.QUIT:
+                    running = False
+                elif event.type == pg.MOUSEBUTTONDOWN:
+                    pos = pg.mouse.get_pos()
+                    self.clickLogic(pos)
+                    self.restartGame(pos)
+
+            self.window.fill(turquesa)
+            self.boardGrid()
+            self.drawSelectedCell()
+            self.drawWinningLine()
+            self.drawCounters()
+            self.drawResult()
+            self.restartButton()
+            pg.display.update()
+
+class GameVSRobot(GameBase):
+    def __init__(self, window, fonte):
+        super().__init__(window, fonte)
+
+    def robotMove(self):
+        if self.end_game:
+            return
+
+        empty_cells = [(y, x) for y in range(3) for x in range(3) if self.board_array[y][x] == 'n']
+        if empty_cells:
+            move = random.choice(empty_cells)
+            self.board_array[move[0]][move[1]] = self.X_or_O_turn
+            self.checkWin()
+            self.X_or_O_turn = 'o' if self.X_or_O_turn == 'x' else 'x'
+
+    def run(self):
+        running = True
+        while running:
+            for event in pg.event.get():
+                if event.type == pg.QUIT:
+                    running = False
+                elif event.type == pg.MOUSEBUTTONDOWN:
+                    pos = pg.mouse.get_pos()
+                    self.clickLogic(pos)
+                    self.restartGame(pos)
+                    if not self.end_game:
+                        self.robotMove()
+
+            self.window.fill(turquesa)
+            self.boardGrid()
+            self.drawSelectedCell()
+            self.drawWinningLine()
+            self.drawCounters()
+            self.drawResult()
+            self.restartButton()
+            pg.display.update()
+
+class JogoDaVelha:
+    def __init__(self):
+        pg.init()
+        self.window = pg.display.set_mode((1000, 600))
+        pg.display.set_caption('Jogo da Velha')
+        self.fonte = pg.font.Font("./Assets/Ubuntu-Medium.ttf", 30)
+
+    def run(self):
+        tela_inicial = TelaInicial(self.window, self.fonte)
+        game_vs_human = GameVsHuman(self.window, self.fonte)
+        game_vs_robot = GameVSRobot(self.window, self.fonte)
+
+        while tela_inicial.running:
+            if tela_inicial.state == 'inicio':
+                tela_inicial.exibir()
+            elif tela_inicial.state == 'game_vs_human':
+                game_vs_human.run()
+                tela_inicial.state = 'inicio'
+            elif tela_inicial.state == 'game_vs_robot':
+                game_vs_robot.run()
+                tela_inicial.state = 'inicio'
 
 if __name__ == "__main__":
     JogoDaVelha().run()
