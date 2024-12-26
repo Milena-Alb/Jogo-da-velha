@@ -213,6 +213,9 @@ class GameVsHuman(GameBase):
 class GameVSRobot(GameBase):
     def __init__(self, window, fonte):
         super().__init__(window, fonte)
+        self.count_player_wins = 0
+        self.count_robot_wins = 0
+        self.count_draws = 0
 
     def robotMove(self):
         if self.end_game:
@@ -224,6 +227,47 @@ class GameVSRobot(GameBase):
             self.board_array[move[0]][move[1]] = self.X_or_O_turn
             self.checkWin()
             self.X_or_O_turn = 'o' if self.X_or_O_turn == 'x' else 'x'
+
+    def checkWin(self):
+        lines = [
+            [(0, 0), (0, 1), (0, 2)],
+            [(1, 0), (1, 1), (1, 2)],
+            [(2, 0), (2, 1), (2, 2)],
+            [(0, 0), (1, 0), (2, 0)],
+            [(0, 1), (1, 1), (2, 1)],
+            [(0, 2), (1, 2), (2, 2)],
+            [(0, 0), (1, 1), (2, 2)],
+            [(2, 0), (1, 1), (0, 2)]
+        ]
+
+        for line in lines:
+            if self.board_array[line[0][0]][line[0][1]] == self.board_array[line[1][0]][line[1][1]] == \
+                    self.board_array[line[2][0]][line[2][1]] != 'n':
+                self.winning_line = (line[0], line[2])
+                self.end_game = True
+                winner = self.board_array[line[0][0]][line[0][1]]
+                if winner == 'x':
+                    self.count_player_wins += 1
+                elif winner == 'o':
+                    self.count_robot_wins += 1
+                return
+
+        if all(cell != 'n' for row in self.board_array for cell in row):
+            self.end_game = True
+            self.count_draws += 1
+
+    def drawCountersBot(self):
+        logo = self.fonte_Logo.render("Jogo da", 1, dourado)
+        logo2 = self.fonte_Logo.render("Velha#", 1, vermelho)
+        self.window.blit(logo, (880, 25))
+        self.window.blit(logo2, (890, 45))
+
+        text_player = self.fonte.render(f'Jogador: {self.count_player_wins}', 1, vermelho)
+        text_robot = self.fonte.render(f'Robô: {self.count_robot_wins}', 1, azul)
+        text_draws = self.fonte.render(f'Empates: {self.count_draws}', 1, preto)
+        self.window.blit(text_player, (620, 350))
+        self.window.blit(text_robot, (820, 350))
+        self.window.blit(text_draws, (720, 400))
 
     def run(self):
         running = True
@@ -242,10 +286,11 @@ class GameVSRobot(GameBase):
             self.boardGrid()
             self.drawSelectedCell()
             self.drawWinningLine()
-            self.drawCounters()
+            self.drawCountersBot()
             self.drawResult()
             self.restartButton()
             pg.display.update()
+
 
 class JogoDaVelha:
     def __init__(self):
