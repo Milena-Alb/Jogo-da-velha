@@ -63,7 +63,5 @@ Para o design do jogo, foi utilizada a fonte **Ubuntu**, que foi baixada do [Goo
 
 Sinta-se à vontade para contribuir com o projeto, enviando pull requests ou abrindo issues com sugestões e melhorias.
 
-### Licença 📜
 
-Este projeto está licenciado sob a Licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
 
